@@ -12,6 +12,20 @@ function Login() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordStrength, setPasswordStrength] = useState({ text: "", color: "", score: 0 });
 
+  // CAPTCHA
+  const [captcha, setCaptcha] = useState({ num1: 0, num2: 0, resultado: 0, input: "" });
+  
+  const generarCaptcha = () => {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    setCaptcha({
+      num1: num1,
+      num2: num2,
+      resultado: num1 + num2,
+      input: ""
+    });
+  };
+
   // Validar formato de email
   const validarEmail = (email) => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -33,7 +47,7 @@ function Login() {
       text = "";
       color = "";
     } else if (score <= 2) {
-      text = "Contraseña débil";
+      text = "Contraseña debil";
       color = "#e74c3c";
     } else if (score === 3 || score === 4) {
       text = "Contraseña media";
@@ -60,7 +74,7 @@ function Login() {
     
     // Validar email
     if (!validarEmail(email)) {
-      setMsg("Ingrese un email válido (debe contener @ y un dominio)");
+      setMsg("Ingrese un email valido (debe contener @ y un dominio)");
       return;
     }
     
@@ -76,6 +90,13 @@ function Login() {
     
     if (passwordStrength.score < 2) {
       setMsg("La contraseña es demasiado debil. Use mas caracteres, mayusculas o numeros");
+      return;
+    }
+
+    // Validar CAPTCHA en registro
+    if (parseInt(captcha.input) !== captcha.resultado) {
+      setMsg("CAPTCHA incorrecto");
+      generarCaptcha();
       return;
     }
 
@@ -95,6 +116,7 @@ function Login() {
         setEmail("");
         setPassword("");
         setConfirmPassword("");
+        generarCaptcha();
       }
     } catch (error) {
       setMsg("Error de conexion");
@@ -109,7 +131,14 @@ function Login() {
     
     // Validar email
     if (!validarEmail(email)) {
-      setMsg("Ingrese un email válido (debe contener @ y un dominio)");
+      setMsg("Ingrese un email valido (debe contener @ y un dominio)");
+      return;
+    }
+
+    // Validar CAPTCHA en login
+    if (parseInt(captcha.input) !== captcha.resultado) {
+      setMsg("CAPTCHA incorrecto");
+      generarCaptcha();
       return;
     }
 
@@ -128,7 +157,7 @@ function Login() {
         localStorage.setItem("rol", data.rol);
         localStorage.setItem("email", data.email);
 
-        // ===== REGISTRAR LOG DE INGRESO =====
+        // Registrar log de ingreso
         const logData = {
           usuario_email: data.email,
           ip: window.location.hostname,
@@ -143,7 +172,7 @@ function Login() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(logData)
           });
-          console.log("✅ Log de ingreso registrado");
+          console.log("Log de ingreso registrado");
         } catch (logError) {
           console.error("Error al registrar log:", logError);
         }
@@ -155,10 +184,15 @@ function Login() {
     }
   };
 
+  // Generar CAPTCHA al cargar el componente
+  useState(() => {
+    generarCaptcha();
+  }, []);
+
   return (
     <div className="loginContainer">
       <div className="loginBox">
-        <h1>{isLogin ? "Iniciar Sesión" : "Registro"}</h1>
+        <h1>{isLogin ? "Iniciar Sesion" : "Registro"}</h1>
         
         {msg && <div className="errorMsg">{msg}</div>}
         
@@ -173,7 +207,7 @@ function Login() {
         
         <input
           type="email"
-          placeholder="Correo electrónico"
+          placeholder="Correo electronico"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
@@ -224,6 +258,23 @@ function Login() {
             </span>
           </div>
         )}
+
+        {/* CAPTCHA */}
+        <div className="captchaContainer">
+          <div className="captchaPregunta">
+            <span>{captcha.num1} + {captcha.num2} = ?</span>
+          </div>
+          <input
+            type="number"
+            placeholder="Resultado"
+            value={captcha.input}
+            onChange={(e) => setCaptcha({ ...captcha, input: e.target.value })}
+            className="captchaInput"
+          />
+          <button type="button" onClick={generarCaptcha} className="captchaRefresh">
+            Actualizar
+          </button>
+        </div>
         
         <button onClick={isLogin ? iniciarSesion : registrar}>
           {isLogin ? "Entrar" : "Registrarse"}
@@ -234,6 +285,7 @@ function Login() {
           setMsg("");
           setPassword("");
           setConfirmPassword("");
+          generarCaptcha();
         }}>
           {isLogin ? "Crear cuenta nueva" : "Ya tengo cuenta"}
         </button>
